@@ -89,6 +89,7 @@ export const userLogin = async (
 			return res.status(403).send('Incorrect password');
 		}
 
+		// clear any current cookies in local storage
 		res.clearCookie(COOKIE_NAME, {
 			domain: 'localhost',
 			path: '/',
@@ -96,9 +97,12 @@ export const userLogin = async (
 			signed: true,
 		});
 
+		// create token
 		const token = createToken(user._id.toString(), user.email, '7d');
 		const expires = new Date();
 		expires.setDate(expires.getDate() + 7);
+
+		// create new cookie containing token and store in local storage
 		res.cookie(COOKIE_NAME, token, {
 			path: '/',
 			domain: 'localhost',
@@ -150,5 +154,44 @@ export const verifyUser = async (
 	} catch (error) {
 		console.log(error);
 		return res.status(200).json({ message: 'ERROR', cause: error.message });
+	}
+};
+
+export const userLogout = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
+	try {
+		// get user by id in jwt
+		const user = await User.findById(res.locals.jwtData.id);
+
+		if (!user) {
+			return res.status(401).send('User not registered');
+		}
+
+		// check if jwt id matches database user id
+		if (user._id.toString() !== res.locals.jwtData.id) {
+			return res.status(401).send('Permissions did not match');
+		}
+
+		res.clearCookie(COOKIE_NAME, {
+			domain: 'localhost',
+			path: '/',
+			httpOnly: true,
+			signed: true,
+		});
+
+		return res.status(200).json({
+			message: 'OK',
+			name: user.name,
+			email: user.email,
+		});
+	} catch (error) {
+		console.log(error);
+		return res.status(200).json({
+			message: 'ERROR',
+			cause: error.message,
+		});
 	}
 };

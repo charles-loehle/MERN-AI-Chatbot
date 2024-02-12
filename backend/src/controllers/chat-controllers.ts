@@ -21,7 +21,7 @@ export const sendChatsToUser = async (
 			return res.status(401).send({ message: 'Permissions did not match' });
 		}
 
-		// get response from openai api
+		// get chats from database mernaichatbot.user.chats
 		return res.status(200).json({ message: 'OK', chats: user.chats });
 	} catch (error) {
 		console.log(error);
@@ -45,7 +45,7 @@ export const generateChatCompletion = async (
 				.json({ message: 'User not registered or token malfuctioned' });
 		}
 
-		// get user's chats
+		// get user's chats from database mernaichatbot.user.chats
 		const chats = user.chats.map(({ role, content }) => ({
 			role,
 			content,
@@ -57,12 +57,14 @@ export const generateChatCompletion = async (
 		// send all chats plus new one to openai api
 		const config = configureOpenAI();
 		const openai = new OpenAIApi(config);
+		// get openai api response
 		const chatResponse = await openai.createChatCompletion({
 			model: 'gpt-3.5-turbo',
 			messages: chats,
 		});
+		// save openai response to database
 		user.chats.push(chatResponse.data.choices[0].message);
-
+		// save every thing to database
 		await user.save();
 		// get response from openai api
 		return res.status(200).json({ chats: user.chats });
@@ -78,23 +80,25 @@ export const deleteChats = async (
 	next: NextFunction
 ) => {
 	try {
-		// `res.locals` property is an object that holds response local variables specific to the current request. i.e. jwtData
+		// get user by id
 		const user = await User.findById(res.locals.jwtData.id);
 
+		// if user not found, send error message
 		if (!user) {
 			return res
 				.status(401)
 				.send({ message: 'User not registered or token malfuctioned' });
 		}
 
+		// check if user's id in database doesn't match id in jwt
 		if (user._id.toString() !== res.locals.jwtData.id) {
 			return res.status(401).send({ message: 'Permissions did not match' });
 		}
 
 		//@ts-ignore
+		// reset chats array
 		user.chats = [];
 		await user.save();
-		// get response from openai api
 		return res.status(200).json({ message: 'OK' });
 	} catch (error) {
 		console.log(error);

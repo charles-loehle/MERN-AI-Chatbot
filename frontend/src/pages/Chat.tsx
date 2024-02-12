@@ -75,10 +75,12 @@ const Chat = () => {
 	}, [auth]);
 
 	useEffect(() => {
+		console.log('in useEffect check for user: ', auth?.user);
+
 		if (!auth?.user) {
 			return navigate('/login');
 		}
-	}, [auth, navigate]);
+	}, [auth]);
 
 	return (
 		<Box
@@ -119,7 +121,8 @@ const Chat = () => {
 						}}
 					>
 						{auth?.user?.name[0]}
-						{auth?.user?.name.split(' ')[1][0]}
+						{auth?.user?.name.split(' ')[1] &&
+							auth?.user?.name.split(' ')[1][0]}
 					</Avatar>
 					<Typography sx={{ mx: 'auto', fontFamily: 'work sans' }}>
 						You are talking to a ChatBOT
